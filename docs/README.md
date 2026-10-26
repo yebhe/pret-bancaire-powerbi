@@ -4,27 +4,16 @@
 
 ![Modèle relationnel](modele_relationnel.png)
 
+## Power Query
+
+![Nettoyage Power Query](nettoyage_pq.png)
+
 ## Pages du rapport Power BI
 
 | Page | Capture |
 |---|---|
 | Dashboard | ![Dashboard](1_dashboard.png) |
-| Production | ![Production](2_page_production.png) |
-| Stockage | ![Stockage](3_page_stockage.png) |
-| Livraison | ![Livraison](4_page_livraison.png) |
-| Approvisionnement | ![Approvisionnement](5_page_approvisionnement.png) |
-| Ventes | ![Ventes](6_page_vente.png) |
-
-## Pages de détail (drill-through)
-
-| Produit | Client | Fournisseur |
-|:---:|:---:|:---:|
-| ![Produit](7_drill_through_fiche_produit.png) | ![Client](8_drill_through_fiche_client.png) | ![Fournisseur](9_drill_through_fiche_fournisseur.png) |
-
-## Mesures
-
-![Mesures et tables](mesures_et_tables.png)
-
-## Version Excel
-
-![Dashboard Excel](10_dashboard_excel.png)
+| Prêts | ![Prêts](2_prets.png) |
+| Échéancier | ![Échéancier](3_echeancier.png) |
+| Remboursements | ![Remboursements](4_remboursement.png) |
+| Clients | ![Clients](5_clients.png) |

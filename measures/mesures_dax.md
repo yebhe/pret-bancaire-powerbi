@@ -1,152 +1,130 @@
 # 🧮 Mesures DAX
 
-Le modèle contient environ 150 mesures dans la table `_Mesures`. Ce document liste les **mesures de base** de chaque domaine. Les mesures dérivées suivent toutes le même schéma :
+Le modèle contient **123 mesures** dans la table `_Mesure`. Ce document liste les **mesures de base** de chaque domaine, avec leur formule. Les mesures dérivées suivent toutes le même schéma :
 
 | Suffixe | Rôle | Exemple |
 |---|---|---|
-| `LY` | Même période, année précédente (`SAMEPERIODLASTYEAR`) | `CA net LY` |
-| `Var %` / `Var pt` | Variation relative ou en points vs N-1 | `CA net Var %` |
-| `Delta` | Texte avec flèche ▲▼► et variation | `CA net Delta` |
-| `Texte` | Valeur formatée (K / M) pour les cartes | `CA net Texte` |
-| `Couleur` | Code couleur selon le sens métier | `CA net var Couleur` |
+| `LY` | Même période, année précédente | `Montant total paye LY` |
+| `Var %` | Variation relative vs N-1 | `Montant total paye Var %` |
+| `PT` | Écart en points vs N-1, pour les taux | `Taux de recouvrement PT` |
+| `var Delta` / `pt Delta` | Texte avec flèche ▲ ▼ ▶ et variation, « Pas de N-1 » si vide | `Montant total paye var Delta` |
+| `var Couleur` / `pt Couleur` | Code couleur selon le sens métier | `Montant total paye var Couleur` |
+| `Texte` | Valeur formatée pour les cartes | `Taux moyen pret Texte` |
 
-Les codes couleur sont dans le dossier *Technique* : `_Couleur bon` (#2E7D32), `_Couleur mauvais` (#C62828), `_Couleur neutre` (#6B7280), `_Couleur alerte` (#E88A00).
+Les codes couleur sont dans le dossier *Technique* : `_Couleur bon` (#1B7F52), `_Couleur mauvais` (#C4362E) et `_couleur neutre` (#4F6A75).
 
-> Pour un indicateur « plus c'est bas, mieux c'est » (coûts, défauts), la logique de couleur est inversée : une baisse est verte.
+> Pour un indicateur « plus c'est bas, mieux c'est » (retards), la logique de couleur est inversée : une baisse est verte (voir `Montant en retard var Couleur`).
 
 ---
 
-## 💶 CA et Ventes
+## 📐 Schéma N-1
 
-| Mesure | Définition |
-|---|---|
-| `CA net` | `SUM(fact_sales[net_revenue])` |
-| `CA brut` | `SUM(fact_sales[gross_revenue])` |
-| `Remises` | `SUM(fact_sales[discount_amount])` |
-| `Cout ventes` | `SUM(fact_sales[total_cost])` |
-| `Profit` | `SUM(fact_sales[profit])` |
-| `Qté vendues` | `SUM(fact_sales[quantity_sold])` |
-| `Nb Commandes` | `DISTINCTCOUNT(fact_sales[order_number])` |
-| `Panier moyen` | `DIVIDE([CA net], [Nb Commandes])` |
-| `Taux de marge %` | `DIVIDE([Profit], [CA net])` |
-| `Valeur cascade` | Valeur par étape (CA brut, remises, coûts, profit) pour le graphique en cascade |
-| `Titre Fiche Produit` | Nom du produit sélectionné, sinon sa catégorie |
-
-## 🏭 Production
-
-| Mesure | Définition |
-|---|---|
-| `Qté produites` | `SUM(fact_production[quantity_produced])` |
-| `Unités defectueuses` | `SUM(fact_production[defective_units])` |
-| `Taux de defaut` | `DIVIDE(unités défectueuses, quantité produite)` |
-| `Nb Lots` | `DISTINCTCOUNT(fact_production[batch_number])` |
-| `Cout production` | `SUMX(fact_production, quantité × coût unitaire du produit)` |
-| `Ratio prod/vente` | `DIVIDE([Qté produites], [Qté vendues])` |
-| `taux de remplissage %` | Production / capacité de la période (voir ci-dessous) |
-
-**Taux de remplissage.** La capacité annuelle est proportionnelle au nombre de mois présents dans le contexte de filtre :
+Le N-1 est borné à la dernière date du fait concerné, ce qui évite de comparer une année partielle à une année complète. Aucune mesure n'utilise `TODAY()`.
 
 ```dax
-taux de remplissage % =
-VAR _Mois =
-    COUNTROWS ( SUMMARIZE ( dim_date, dim_date[year], dim_date[month] ) )
-VAR _CapaciteAnnuelle =
-    SUM ( dim_facility[annual_capacity] )
-VAR _CapacitePeriode =
-    _CapaciteAnnuelle / 12 * _Mois
+Montant total paye LY =
+VAR _bornes = EDATE ( [_Derniere date remboursement], -12 )
 RETURN
-    DIVIDE ( [Qté produites], _CapacitePeriode )
+    CALCULATE (
+        [Montant total paye],
+        SAMEPERIODLASTYEAR ( dim_temps[DT_TEMPS] ),
+        dim_temps[DT_TEMPS] <= _bornes
+    )
 ```
 
-## 📦 Stock / Stockage
+```dax
+Montant total paye Var % =
+VAR n   = [Montant total paye]
+VAR n_1 = [Montant total paye LY]
+RETURN
+    IF ( NOT ISBLANK ( n ) && NOT ISBLANK ( n_1 ), DIVIDE ( n - n_1, n_1 ) )
+```
 
-| Mesure | Définition |
+Les dates de borne sont portées par trois mesures techniques : `_Derniere date pret`, `_Derniere date remboursement` et `_Derniere date echeancier`.
+
+---
+
+## 💶 Prêts
+
+| Mesure | Formule |
 |---|---|
-| `Stock` | Niveau de stock au dernier snapshot de la période (`LASTNONBLANK`) |
-| `Valeur du stock` | Stock × coût unitaire du produit, au dernier snapshot |
-| `Stock_valeur_moyen` | Valeur du stock moyenne sur les snapshots de la période |
-| `Stock sous seuil` | Nb de produits dont le stock est inférieur au point de commande |
-| `Stock critique` | Nb de produits dont le stock est inférieur ou égal au stock de sécurité |
-| `Nb Produits Snapshot` | Nb de couples produit × site dans le dernier snapshot |
-| `Statut critique` / `Statut sous seuil` / `Statut ok` | Répartition exclusive des produits (critique, sous seuil hors critique, ok) |
-| `Rotation du stock` | `DIVIDE(coût des ventes, valeur moyenne du stock)` |
-| `Jours de stock` | `DIVIDE(nb de jours, rotation du stock)` |
-| `Nb sites stockage` | `DISTINCTCOUNT(dim_facility[facility_id])` |
+| `Nb prets` | `DISTINCTCOUNT(fait_pret[ID_PRET])` |
+| `Nb clients emprunteurs` | `DISTINCTCOUNT(fait_pret[ID_CLIENT])` |
+| `Montant total prete` | `SUM(fait_pret[MONTANT_PRET])` |
+| `Montant moyen pret` | `DIVIDE([Montant total prete], [Nb prets])` |
+| `Duree moyenne pret` | `AVERAGE(fait_pret[DUREE_MOIS])` |
+| `Taux moyen pret` | Taux pondéré par le montant : `DIVIDE(SUMX(fait_pret, MONTANT_PRET * TAUX_INTERET), [Montant total prete])` |
 
-## 🧾 Approvisionnement
+## 📅 Échéancier
 
-| Mesure | Définition |
+| Mesure | Formule |
 |---|---|
-| `Qté commandées` | `SUM(fact_procurement[order_quantity])` |
-| `Cout commandes` | `SUM(fact_procurement[total_cost])` |
-| `Nb Achats` | `DISTINCTCOUNT(fact_procurement[procurement_id])` |
-| `Cout moyen par Achat` | `DIVIDE([Cout commandes], [Nb Achats])` |
-| `Score qualité moyen` | `AVERAGE(fact_procurement[quality_score])` |
-| `Délais moyen approvis` | Moyenne de (clé date de livraison − clé date de commande) sur les lignes livrées |
+| `Nb echeances` | `DISTINCTCOUNT(fait_echeancier[ID_ECHEANCE])` |
+| `Nb echeances echues` | `Nb echeances` pour les statuts `PART`, `REGL`, `RET` |
+| `Part echues %` | `DIVIDE([Nb echeances echues], [Nb echeances])` |
+| `Montant total prevu` | `SUM(fait_echeancier[MONTANT_PREVU])` |
+| `Interet prevus` | `SUM(fait_echeancier[INTERET_PREVU])` |
+| `Montant total prevu echu` | `Montant total prevu` pour les statuts `PART`, `REGL`, `RET` (`KEEPFILTERS` : respecte un filtre de statut posé par l'utilisateur) |
 
-Les clés de date (`date_key`) sont des entiers séquentiels (1 à 731) : leur différence est donc un nombre de jours.
+## 💳 Remboursements
 
-## 🚚 Expédition / Livraison
+Toutes les mesures de paiement **excluent les copies** avec `fait_remboursement[EST_COPIE] = FALSE()` (voir [Limites connues](../README.md#-limites-connues)).
 
-| Mesure | Définition |
+| Mesure | Formule |
 |---|---|
-| `Nb expeditions` | `DISTINCTCOUNT(fact_shipment[shipment_id])` |
-| `Qté expediées` | `SUM(fact_shipment[quantity])` |
-| `Cout expeditions` | `SUM(fact_shipment[shipping_cost])` |
-| `Coût moyen par expedition` | `DIVIDE([Cout expeditions], [Nb expeditions])` |
-| `Taux livraison %` | Part des expéditions au statut *Delivered* |
-| `Nb retards` | Expéditions au statut *Delayed* |
-| `Delais moyen de livraison` | Moyenne de (clé date de livraison − clé date d'expédition) |
-| `Cout expédition YTD` | Cumul annuel du coût d'expédition (`TOTALYTD`) |
+| `Montant total paye` | `CALCULATE(SUM(fait_remboursement[MONTANT_PAYE]), EST_COPIE = FALSE())` |
+| `Capital total paye` | idem sur `CAPITAL_PAYE` |
+| `Interet total paye` | idem sur `INTERET_PAYE` |
+| `Nb remboursements` | `CALCULATE(DISTINCTCOUNT(fait_remboursement[ID_REMB]), EST_COPIE = FALSE())` |
+| `Montant moyen rembourse` | `DIVIDE([Montant total paye], [Nb remboursements])` |
+| `Nb mensualites estimees` | Somme pondérée par la périodicité (`MENS` 1, `TRIM` 3, `SEM` 6, `ANN` 12, autre 1), hors copies |
 
-Le `Taux Livraison Couleur` utilise des seuils : ≥ 90 % vert, ≥ 80 % orange, sinon rouge.
+## ⏱️ Recouvrement et retards
+
+| Mesure | Formule |
+|---|---|
+| `Taux de recouvrement %` | `DIVIDE([Montant total paye], [Montant total prevu echu])` |
+| `Taux de paiement dans les delais` | Montant prévu des échéances `REGL` / `Montant total prevu echu` |
+| `Retard echeance echues %` | Nombre d'échéances `RET` / nombre d'échéances `PART`, `REGL`, `RET` |
+| `Montant en retard` | `Montant total prevu` pour le statut `RET` |
+| `Montant restant a rembourser` | `[Montant total prevu] - [Montant total paye]` |
+
+`Montant en retard` désigne des échéances payées avec retard, pas des impayés. `Montant restant a rembourser` ne porte que sur les 4 premières échéances de chaque prêt, celles de l'échéancier chargé.
+
+## 👥 Clients
+
+| Mesure | Formule |
+|---|---|
+| `Nb clients actifs` | `CALCULATE(COUNTROWS(dim_client), dim_client[ACTIF] = 1)` |
+| `Part emprunteurs %` | Clients emprunteurs actifs / clients actifs |
+| `Pret moyen client` | `DIVIDE([Montant total prete], [Nb clients emprunteurs])` |
+| `Nb prets par client` | `DIVIDE([Nb prets], [Nb clients emprunteurs])` |
+
+`ACTIF` est un instantané sans historique : `Nb clients actifs LY` vaut volontairement `BLANK()` et ses mesures dérivées affichent « Pas de N-1 ».
 
 ---
 
 ## 🗂️ Dossiers d'affichage
 
 ```
-_Mesures
+_Mesure
 ├── Dashboard
-│   ├── CA
-│   │   ├── 1 Base
-│   │   ├── 2 Comparaison N-1
-│   │   └── 3 Affichage carte
-│   ├── Commandes
-│   │   ├── 1 Base
-│   │   ├── 2 Comparaison N-1
-│   │   └── 3 Affichage carte
-│   ├── Expedition
-│   │   ├── 1 Base
-│   │   ├── 2 Comparaison N-1
-│   │   └── 3 Affichage carte
-│   ├── Production
-│   │   ├── 1 Base
-│   │   ├── 2 Comparaison N-1
-│   │   └── 3 Affichage carte
-│   ├── Profit
-│   │   ├── 1 Base
-│   │   └── 2 Comparaison N-1
-│   └── Stock
-│       ├── 1 Base
-│       ├── 2 Comparaison N-1
-│       └── 3 Affichage carte
-├── Approvis
 │   ├── 1 Base
 │   ├── 2 Comparaison N-1
 │   └── 3 Affichage carte
-├── Livraison
+├── Prets
 │   ├── 1 Base
 │   ├── 2 Comparaison N-1
 │   └── 3 Affichage carte
-├── Production
+├── Echeancier
 │   ├── 1 Base
 │   ├── 2 Comparaison N-1
 │   └── 3 Affichage carte
-├── Stockage
+├── Remboursement
 │   ├── 1 Base
+│   ├── 2 Comparaison N-1
 │   └── 3 Affichage carte
-├── Ventes
+├── Clients
 │   ├── 1 Base
 │   ├── 2 Comparaison N-1
 │   └── 3 Affichage carte

@@ -1,17 +1,14 @@
-# --- Power BI : fichiers locaux et caches ---
+# Power BI : fichiers locaux et caches
 .pbi/
-**/.pbi/localSettings.json
-**/.pbi/cache.abf
 *.pbix.bak
 *.pbi.tmp
 ~$*.pbix
 
-
-# --- Système ---
+# Système
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# --- Éditeurs ---
+# Éditeurs
 .vscode/
 .idea/
