@@ -238,10 +238,10 @@ Contrôles réalisés en lecture seule par requêtes DAX sur le modèle chargé.
 ## 📂 Structure du dépôt
 
 ```
-banque-portefeuille-prets/
+pret-bancaire-powerbi/
 ├── README.md                  ← ce fichier
 ├── .gitignore
-├── banque_portefeuille.pbix   ← rapport Power BI
+├── banque_p3_last.pbix        ← rapport Power BI
 ├── data/
 │   ├── README.md              ← description des données
 │   └── banque_p3_last_csv/    ← 9 fichiers CSV
