@@ -10,6 +10,14 @@ Prêts · Échéancier · Remboursements · Clients
 ![Power Query](https://img.shields.io/badge/Power%20Query-M-217346?style=for-the-badge)
 ![Modèle](https://img.shields.io/badge/Mod%C3%A8le-constellation-6B7280?style=for-the-badge)
 
+<br>
+
+[![Télécharger le .pbix](https://img.shields.io/badge/T%C3%A9l%C3%A9charger%20le%20.pbix-0F7B84?style=for-the-badge&logo=powerbi&logoColor=white)](https://github.com/yebhe/pret-bancaire-powerbi/raw/main/banque_p3_last.pbix)
+[![Données CSV](https://img.shields.io/badge/Donn%C3%A9es%20CSV-0F7B84?style=for-the-badge&logo=files&logoColor=white)](data/banque_p3_last_csv)
+[![Mesures DAX](https://img.shields.io/badge/Mesures%20DAX-0F7B84?style=for-the-badge&logo=readthedocs&logoColor=white)](measures/mesures_dax.md)
+[![Galerie](https://img.shields.io/badge/Galerie-0F7B84?style=for-the-badge&logo=googlephotos&logoColor=white)](docs/README.md)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/yebhe/)
+
 </div>
 
 > ⚠️ **Projet d'apprentissage.** Les données sont fictives et ne représentent aucun établissement bancaire réel (voir [Limites connues](#-limites-connues)).
